@@ -1,6 +1,6 @@
 """
-CBO Training & Camp Reporting Web App
-MoneyWise / CRISIL Foundation - Financial Literacy Project
+MoneyWise CBO Training Portal
+Professional Data Entry Form + Report
 """
 
 import streamlit as st
@@ -12,487 +12,455 @@ import os
 # -------------------- CONFIG --------------------
 DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 STAFF_CSV = os.path.join(DATA_DIR, "active_staff.csv")
-# Use /tmp on cloud so SQLite is always writable
-DB_PATH = os.path.join("/tmp", "training_app.db") if os.path.exists("/tmp") else os.path.join(DATA_DIR, "training_app.db")
+DB_PATH = os.path.join("/tmp", "cbo_training.db") if os.path.exists("/tmp") else os.path.join(DATA_DIR, "cbo_training.db")
 
-# Topics from the official Input Reporting Format PDF
-CAMP_TOPICS = [
-    "आर्थिक नियोजन (आय-व्यय)",
-    "बचत एवं निवेश",
-    "बैंकिंग एवं वित्तीय उत्पाद",
-    "बीमा",
-    "पेंशन (स्वावलंबन)",
-    "डिजिटल लेनदेन एवं वित्तीय सेवाएँ",
-    "लोन / ऋण",
-    "व्यवसायिक ऋण",
-    "बैंकिंग ग्राहक के अधिकार एवं जिम्मेदारियाँ",
-    "शिकायत निवारण प्रणाली (लोकपाल)",
-    "बुनियादी वित्तीय साक्षरता",
-    "बुनियादी गणितीय कौशल",
-    "अन्य"
+TOPICS = [
+    "CRISIL Foundation / SOP of Project",
+    "KYC / Re-KYC",
+    "Digital Banking & Digital Lending",
+    "Social Security Schemes (PMJDY, PMSBY, PMJJBY, APY, NPS)",
+    "Banking Ombudsman / One Nation One Ombudsman",
+    "Mutual Funds / SIP",
+    "Savings, RD, FD, ATM",
+    "MSME / Mudra Loan / CM YUVA",
+    "Insurance & Financial Planning",
+    "Fraud Prevention / Cyber Fraud",
+    "NABARD / RBI / PACS",
+    "Communication Skills for Effective Session",
+    "Input Reporting Form Filling",
+    "Other"
 ]
 
-GROUP_TYPES = [
-    "स्वयं सहायता समूह (SHG)",
-    "म्युचुअल सपोर्ट समूह",
-    "मिश्रित वर्ग",
-    "किसान वर्ग",
-    "अन्य"
-]
+PHASES = ["Phase-II", "Phase-III", "Extension Phase - 1"]
 
-TRAINING_METHODS = [
-    "ऑडियो विजुअल (AVT)",
-    "फिल्म/वीडियो (FBT)",
-    "खेल",
-    "व्याख्यान",
-    "अन्य"
-]
-
-CAMP_TYPES = ["प्रशिक्षण (Training)", "जागरूकता (Awareness)", "लिंकेज (Linkage)", "अन्य (Other)"]
-
-KNOWLEDGE_LEVELS = [
-    "लोग जागरूक नहीं हैं और वित्तीय रूप से अशिक्षित हैं",
-    "लोग जागरूक हैं और वित्तीय रूप से शिक्षित हैं",
-    "लोग जागरूक हैं और हाल ही में वित्तीय रूप से शिक्षित हुए हैं (पिछले एक वर्ष की अवधि में)",
-    "लोग जागरूक हैं और औपचारिक वित्तीय सेवाओं का उपयोग कर रहे हैं"
-]
-
-# -------------------- DATABASE --------------------
+# -------------------- DB --------------------
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
-        CREATE TABLE IF NOT EXISTS camps (
+        CREATE TABLE IF NOT EXISTS training_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cbo_id TEXT,
+            cbo_id TEXT NOT NULL,
             cbo_name TEXT,
-            camp_type TEXT,
-            camp_date TEXT,
-            start_time TEXT,
-            end_time TEXT,
-            duration_hh TEXT,
-            duration_mm TEXT,
-            village TEXT,
-            gram_panchayat TEXT,
-            block TEXT,
-            district TEXT,
-            trainer_name TEXT,
-            trainer_designation TEXT,
-            female_count INTEGER,
-            male_count INTEGER,
-            transgender_count INTEGER,
-            total_participants INTEGER,
-            group_type TEXT,
-            training_method TEXT,
-            topics TEXT,
-            knowledge_level TEXT,
+            entry_date TEXT,
+            training_type TEXT,
+            topic TEXT,
+            activity_date TEXT,
             phase TEXT,
+            no_physical INTEGER DEFAULT 0,
+            no_virtual INTEGER DEFAULT 0,
+            staff_ids TEXT,
+            staff_names TEXT,
             remarks TEXT,
             created_at TEXT
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS camp_attendance (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            camp_id INTEGER,
-            staff_id TEXT,
-            staff_name TEXT,
-            designation TEXT,
-            present INTEGER DEFAULT 1,
-            FOREIGN KEY (camp_id) REFERENCES camps(id)
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS participants (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            camp_id INTEGER,
-            name TEXT,
-            father_husband TEXT,
-            category TEXT,
-            age INTEGER,
-            occupation TEXT,
-            education TEXT,
-            mobile TEXT,
-            linkage_type TEXT,
-            FOREIGN KEY (camp_id) REFERENCES camps(id)
         )
     """)
     conn.commit()
     conn.close()
 
-def get_db():
+def get_conn():
     return sqlite3.connect(DB_PATH)
 
-# -------------------- DATA LOADING --------------------
+# -------------------- DATA --------------------
 @st.cache_data
 def load_staff():
     df = pd.read_csv(STAFF_CSV)
-    df['Mobile No'] = df['Mobile No'].astype(str)
+    df["Mobile No"] = df["Mobile No"].astype(str)
     return df
 
 @st.cache_data
 def load_leaders():
     df = load_staff()
-    # Leaders = anyone who has people reporting to them
-    leader_ids = df['Primary_ID'].dropna().unique().tolist()
-    leaders = df[df['Consultant No'].isin(leader_ids)][
-        ['Consultant No', 'Consultant', 'Designation', 'Working Location', 'Mobile No']
-    ].copy()
-    leaders = leaders.sort_values('Consultant').reset_index(drop=True)
+    ids = df["Primary_ID"].dropna().unique().tolist()
+    leaders = df[df["Consultant No"].isin(ids)][
+        ["Consultant No", "Consultant", "Designation", "Working Location", "Mobile No"]
+    ].drop_duplicates().sort_values("Consultant").reset_index(drop=True)
     return leaders
 
 def get_team(cbo_id, staff_df):
-    """Return all staff whose Primary_ID == cbo_id"""
-    team = staff_df[staff_df['Primary_ID'] == cbo_id].copy()
-    return team
+    return staff_df[staff_df["Primary_ID"] == cbo_id].copy()
 
-# -------------------- AUTH --------------------
-def login_page():
-    st.title("🏦 MoneyWise – CBO Training Portal")
-    st.markdown("### वित्तीय साक्षरता केंद्र | Capacity Building Officer Login")
-    st.divider()
+# -------------------- STYLES --------------------
+def inject_css():
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    leaders = load_leaders()
-    leader_options = {
-        f"{row['Consultant']} ({row['Consultant No']}) – {row['Working Location']}": row['Consultant No']
-        for _, row in leaders.iterrows()
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
     }
 
-    selected = st.selectbox("अपना नाम / CBO ID चुनें", options=list(leader_options.keys()))
-    password = st.text_input("Password (default: cbo123)", type="password", value="cbo123")
+    .main-header {
+        background: linear-gradient(135deg, #0f4c81 0%, #1a73a8 100%);
+        color: white;
+        padding: 1.2rem 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(15,76,129,0.25);
+    }
+    .main-header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: white !important;
+    }
+    .main-header p {
+        margin: 0.3rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.9rem;
+        color: white !important;
+    }
 
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        if st.button("Login", type="primary", use_container_width=True):
-            if password == "cbo123":
-                cbo_id = leader_options[selected]
-                cbo_row = leaders[leaders['Consultant No'] == cbo_id].iloc[0]
-                st.session_state['logged_in'] = True
-                st.session_state['cbo_id'] = cbo_id
-                st.session_state['cbo_name'] = cbo_row['Consultant']
-                st.session_state['cbo_location'] = cbo_row['Working Location']
-                st.session_state['cbo_designation'] = cbo_row['Designation']
+    .metric-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1rem 1.2rem;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .metric-card .value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0f4c81;
+    }
+    .metric-card .label {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-top: 0.2rem;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 1.2rem 0 0.8rem 0;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid #0f4c81;
+    }
+
+    div[data-testid="stSidebar"] {
+        background: #f8fafc;
+    }
+
+    .stButton > button[kind="primary"] {
+        background: #0f4c81;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background: #0a3a63;
+    }
+
+    .login-box {
+        max-width: 420px;
+        margin: 3rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        border: 1px solid #e5e7eb;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# -------------------- LOGIN --------------------
+def login_page():
+    inject_css()
+    st.markdown("""
+    <div style="text-align:center; margin-top:2rem;">
+        <h1 style="color:#0f4c81; font-weight:700;">MoneyWise</h1>
+        <p style="color:#6b7280;">CBO Training & Capacity Building Portal</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    leaders = load_leaders()
+    options = {
+        f"{r['Consultant']}  ({r['Consultant No']})  ·  {r['Working Location']}": r["Consultant No"]
+        for _, r in leaders.iterrows()
+    }
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("#### CBO Login")
+        selected = st.selectbox("Select your name", list(options.keys()), label_visibility="collapsed")
+        pwd = st.text_input("Password", type="password", value="cbo123", placeholder="Enter password")
+        if st.button("Sign In", type="primary", use_container_width=True):
+            if pwd == "cbo123":
+                cid = options[selected]
+                row = leaders[leaders["Consultant No"] == cid].iloc[0]
+                st.session_state.logged_in = True
+                st.session_state.cbo_id = cid
+                st.session_state.cbo_name = row["Consultant"]
+                st.session_state.cbo_loc = row["Working Location"]
+                st.session_state.cbo_desig = row["Designation"]
                 st.rerun()
             else:
-                st.error("गलत Password। Default password: cbo123")
-
-    st.info("💡 Demo Login: कोई भी CBO चुनें + Password: **cbo123**")
+                st.error("Incorrect password. Use: cbo123")
+        st.caption("Demo password: **cbo123**")
 
 # -------------------- DASHBOARD --------------------
-def dashboard(staff_df):
-    cbo_id = st.session_state['cbo_id']
-    cbo_name = st.session_state['cbo_name']
+def page_dashboard(staff_df):
+    cbo_id = st.session_state.cbo_id
     team = get_team(cbo_id, staff_df)
 
-    st.title(f"👋 नमस्ते, {cbo_name}")
-    st.caption(f"{st.session_state['cbo_designation']} | {st.session_state['cbo_location']} | ID: {cbo_id}")
-    st.divider()
+    st.markdown(f"""
+    <div class="main-header">
+        <h1>Welcome, {st.session_state.cbo_name}</h1>
+        <p>{st.session_state.cbo_desig} &nbsp;|&nbsp; {st.session_state.cbo_loc} &nbsp;|&nbsp; ID: {cbo_id}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # KPI cards
-    fc_count = len(team[team['Designation'].str.contains('Field Coordinator', na=False)])
-    cm_count = len(team[team['Designation'].str.contains('Centre Manager', na=False)])
-    deo_count = len(team[team['Designation'].str.contains('Data Entry Operator', na=False)])
-    other_count = len(team) - fc_count - cm_count - deo_count
+    fc = len(team[team["Designation"].str.contains("Field Coordinator", na=False)])
+    cm = len(team[team["Designation"].str.contains("Centre Manager", na=False)])
+    deo = len(team[team["Designation"].str.contains("Data Entry Operator", na=False)])
 
-    k1, k2, k3, k4, k5 = st.columns(5)
-    k1.metric("कुल टीम", len(team))
-    k2.metric("Field Coordinator", fc_count)
-    k3.metric("Centre Manager", cm_count)
-    k4.metric("Data Entry Operator", deo_count)
-    k5.metric("अन्य", other_count)
-
-    # Recent camps
-    conn = get_db()
-    camps = pd.read_sql_query(
-        "SELECT id, camp_date, camp_type, village, district, total_participants, phase FROM camps WHERE cbo_id=? ORDER BY camp_date DESC LIMIT 10",
+    conn = get_conn()
+    stats = pd.read_sql_query(
+        "SELECT COUNT(*) as total, COALESCE(SUM(no_physical),0) as phys, COALESCE(SUM(no_virtual),0) as virt FROM training_entries WHERE cbo_id=?",
+        conn, params=(cbo_id,)
+    )
+    recent = pd.read_sql_query(
+        "SELECT entry_date, training_type, topic, activity_date, phase, no_physical, no_virtual FROM training_entries WHERE cbo_id=? ORDER BY id DESC LIMIT 8",
         conn, params=(cbo_id,)
     )
     conn.close()
 
-    st.subheader("📋 हाल की Camps / Training")
-    if camps.empty:
-        st.info("अभी तक कोई camp entry नहीं हुई है। बाईं तरफ से 'नया Camp / Training' चुनें।")
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        st.markdown(f'<div class="metric-card"><div class="value">{len(team)}</div><div class="label">Total Team</div></div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown(f'<div class="metric-card"><div class="value">{fc}</div><div class="label">Field Coordinators</div></div>', unsafe_allow_html=True)
+    with c3:
+        st.markdown(f'<div class="metric-card"><div class="value">{cm}</div><div class="label">Centre Managers</div></div>', unsafe_allow_html=True)
+    with c4:
+        st.markdown(f'<div class="metric-card"><div class="value">{deo}</div><div class="label">Data Entry Operators</div></div>', unsafe_allow_html=True)
+    with c5:
+        total_entries = int(stats["total"].iloc[0] or 0)
+        st.markdown(f'<div class="metric-card"><div class="value">{total_entries}</div><div class="label">Trainings Done</div></div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="section-title">Recent Training Entries</div>', unsafe_allow_html=True)
+    if recent.empty:
+        st.info("No training entries yet. Go to **Data Entry Form** to add one.")
     else:
-        st.dataframe(camps, use_container_width=True, hide_index=True)
+        st.dataframe(recent, use_container_width=True, hide_index=True)
 
-# -------------------- STAFF LIST --------------------
-def staff_list_page(staff_df):
-    cbo_id = st.session_state['cbo_id']
+# -------------------- TEAM LIST --------------------
+def page_team(staff_df):
+    cbo_id = st.session_state.cbo_id
     team = get_team(cbo_id, staff_df)
 
-    st.title("👥 मेरी टीम (FC / CM / DEO)")
-    st.caption(f"कुल {len(team)} सदस्य | CBO: {st.session_state['cbo_name']}")
+    st.markdown(f"""
+    <div class="main-header">
+        <h1>My Team</h1>
+        <p>{len(team)} members under {st.session_state.cbo_name}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Filters
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns([2, 2])
     with col1:
-        desig_filter = st.multiselect(
-            "Designation",
-            options=sorted(team['Designation'].unique()),
-            default=sorted(team['Designation'].unique())
-        )
+        desigs = st.multiselect("Filter Designation", sorted(team["Designation"].unique()), default=list(team["Designation"].unique()))
     with col2:
-        loc_filter = st.multiselect(
-            "Working Location",
-            options=sorted(team['Working Location'].dropna().unique()),
-            default=[]
-        )
-    with col3:
-        search = st.text_input("Search (Name / ID / Mobile)")
+        search = st.text_input("Search name / ID / mobile")
 
-    filtered = team[team['Designation'].isin(desig_filter)]
-    if loc_filter:
-        filtered = filtered[filtered['Working Location'].isin(loc_filter)]
+    filtered = team[team["Designation"].isin(desigs)]
     if search:
-        mask = (
-            filtered['Consultant'].str.contains(search, case=False, na=False) |
-            filtered['Consultant No'].str.contains(search, case=False, na=False) |
-            filtered['Mobile No'].str.contains(search, case=False, na=False)
+        m = (
+            filtered["Consultant"].str.contains(search, case=False, na=False) |
+            filtered["Consultant No"].str.contains(search, case=False, na=False) |
+            filtered["Mobile No"].str.contains(search, case=False, na=False)
         )
-        filtered = filtered[mask]
+        filtered = filtered[m]
 
-    # Document status
-    def doc_status(row):
-        pending = []
-        if str(row.get('Aadhar Card', '')).lower() != 'verified':
-            pending.append('Aadhaar')
-        if str(row.get('PAN Card', '')).lower() != 'verified':
-            pending.append('PAN')
-        if str(row.get('Bank Cancelled Cheque/Passbook', '')).lower() != 'verified':
-            pending.append('Bank')
-        if str(row.get('TDS Exemption Certificate', '')).lower() == 'pending':
-            pending.append('TDS')
-        return ', '.join(pending) if pending else '✅ All Verified'
+    show = filtered[["Consultant No", "Consultant", "Designation", "Working Location", "Mobile No", "Gender", "Aging", "BCC Code"]].copy()
+    show["Designation"] = show["Designation"].str.replace("Consultant (", "").str.replace(")", "")
+    st.dataframe(show, use_container_width=True, hide_index=True, height=420)
 
-    display = filtered[[
-        'Consultant No', 'Consultant', 'Designation', 'Working Location',
-        'Mobile No', 'Gender', 'Aging', 'BCC Code'
-    ]].copy()
-    display['Document Pending'] = filtered.apply(doc_status, axis=1)
+    st.download_button("Download CSV", show.to_csv(index=False).encode("utf-8-sig"),
+                       f"team_{cbo_id}_{date.today()}.csv", "text/csv")
 
-    st.dataframe(display, use_container_width=True, hide_index=True, height=500)
-
-    st.download_button(
-        "📥 Excel Download",
-        data=display.to_csv(index=False).encode('utf-8-sig'),
-        file_name=f"team_{cbo_id}_{date.today()}.csv",
-        mime="text/csv"
-    )
-
-# -------------------- NEW CAMP / TRAINING ENTRY --------------------
-def new_camp_page(staff_df):
-    cbo_id = st.session_state['cbo_id']
-    cbo_name = st.session_state['cbo_name']
+# -------------------- DATA ENTRY FORM --------------------
+def page_entry(staff_df):
+    cbo_id = st.session_state.cbo_id
+    cbo_name = st.session_state.cbo_name
     team = get_team(cbo_id, staff_df)
 
-    st.title("📝 नया Camp / Training Entry")
-    st.caption("Input Reporting Format के अनुसार")
+    st.markdown(f"""
+    <div class="main-header">
+        <h1>Data Entry Form</h1>
+        <p>Record Physical / Virtual Training · CBO-wise Staff Attendance</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    with st.form("camp_form", clear_on_submit=True):
-        st.subheader("1. कैम्प की मूल जानकारी")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            camp_type = st.selectbox("कैम्प प्रकार", CAMP_TYPES)
-            camp_date = st.date_input("दिनांक", value=date.today())
-        with c2:
-            start_time = st.time_input("समय से")
-            end_time = st.time_input("समय तक")
-        with c3:
-            duration_hh = st.number_input("अवधि (घंटे)", min_value=0, max_value=12, value=2)
-            duration_mm = st.number_input("अवधि (मिनट)", min_value=0, max_value=59, value=0)
+    with st.form("entry_form", clear_on_submit=True):
+        st.markdown("**Basic Details**")
+        r1c1, r1c2, r1c3 = st.columns(3)
+        with r1c1:
+            entry_date = st.date_input("Date", value=date.today())
+        with r1c2:
+            training_type = st.selectbox("Training Type", ["Physical", "Virtual"])
+        with r1c3:
+            activity_date = st.date_input("Activity Date", value=date.today())
 
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            village = st.text_input("ग्राम *")
-        with c2:
-            gram_panchayat = st.text_input("ग्राम पंचायत")
-        with c3:
-            block = st.text_input("ब्लॉक")
-        with c4:
-            district = st.text_input("जिला *")
+        r2c1, r2c2 = st.columns(2)
+        with r2c1:
+            topic = st.selectbox("Training Topic", TOPICS)
+        with r2c2:
+            phase = st.selectbox("Phase", PHASES)
 
-        st.subheader("2. ट्रेनर जानकारी")
-        t1, t2 = st.columns(2)
-        with t1:
-            trainer_name = st.text_input("ट्रेनर का नाम", value=cbo_name)
-        with t2:
-            trainer_desig = st.text_input("पद", value=st.session_state.get('cbo_designation', ''))
+        st.markdown("**Numbers**")
+        n1, n2 = st.columns(2)
+        with n1:
+            no_physical = st.number_input("No. of Physical Training", min_value=0, value=1 if training_type == "Physical" else 0)
+        with n2:
+            no_virtual = st.number_input("No. of Virtual Training", min_value=0, value=1 if training_type == "Virtual" else 0)
 
-        st.subheader("3. प्रतिभागियों की संख्या")
-        p1, p2, p3, p4 = st.columns(4)
-        with p1:
-            female = st.number_input("महिला", min_value=0, value=0)
-        with p2:
-            male = st.number_input("पुरुष", min_value=0, value=0)
-        with p3:
-            trans = st.number_input("ट्रांसजेंडर", min_value=0, value=0)
-        with p4:
-            total = female + male + trans
-            st.metric("कुल", total)
+        st.markdown("**Staff List (Tick present staff)**")
+        st.caption("Only your mapped FC / CM / DEO are shown")
 
-        st.subheader("4. समूह का प्रकार एवं पद्धति")
-        g1, g2 = st.columns(2)
-        with g1:
-            group_type = st.selectbox("समूह का प्रकार", GROUP_TYPES)
-        with g2:
-            method = st.selectbox("प्रशिक्षण की पद्धति", TRAINING_METHODS)
+        present_ids = []
+        present_names = []
 
-        st.subheader("5. कैम्प के मुख्य विषय (Topics)")
-        selected_topics = st.multiselect("विषय चुनें (PDF के अनुसार)", CAMP_TOPICS)
+        for desig_label, keyword in [
+            ("Field Coordinators", "Field Coordinator"),
+            ("Centre Managers", "Centre Manager"),
+            ("Data Entry Operators", "Data Entry Operator"),
+        ]:
+            subset = team[team["Designation"].str.contains(keyword, na=False)]
+            if not subset.empty:
+                st.markdown(f"**{desig_label}** ({len(subset)})")
+                cols = st.columns(3)
+                for idx, (_, row) in enumerate(subset.iterrows()):
+                    with cols[idx % 3]:
+                        label = f"{row['Consultant']} ({row['Consultant No'][-5:]})"
+                        if st.checkbox(label, key=f"staff_{row['Consultant No']}"):
+                            present_ids.append(row["Consultant No"])
+                            present_names.append(row["Consultant"])
 
-        knowledge = st.radio("उपस्थित समूह के लोगों की श्रेणी", KNOWLEDGE_LEVELS)
+        other = team[~team["Designation"].str.contains("Field Coordinator|Centre Manager|Data Entry Operator", na=False)]
+        if not other.empty:
+            st.markdown("**Other**")
+            for _, row in other.iterrows():
+                if st.checkbox(f"{row['Consultant']} ({row['Designation']})", key=f"staff_{row['Consultant No']}"):
+                    present_ids.append(row["Consultant No"])
+                    present_names.append(row["Consultant"])
 
-        phase = st.selectbox("Phase", ["Phase-II", "Phase-III", "Extension Phase - 1", "अन्य"])
+        remarks = st.text_area("Remarks (optional)", height=80)
 
-        remarks = st.text_area("अतिरिक्त टिप्पणी / Remarks")
-
-        st.subheader("6. स्टाफ Attendance (FC / CM / DEO)")
-        st.caption("जिन स्टाफ ने इस camp में भाग लिया, उन्हें टिक करें")
-        staff_options = {
-            f"{row['Consultant']} ({row['Consultant No']}) – {row['Designation'].replace('Consultant (','').replace(')','')}": row['Consultant No']
-            for _, row in team.iterrows()
-        }
-        present_staff = st.multiselect("उपस्थित स्टाफ", options=list(staff_options.keys()))
-
-        submitted = st.form_submit_button("💾 Camp Save करें", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Save Entry", type="primary", use_container_width=True)
 
         if submitted:
-            if not village or not district:
-                st.error("ग्राम और जिला अनिवार्य हैं।")
-            elif total == 0:
-                st.error("कम से कम 1 प्रतिभागी होना चाहिए।")
+            if not present_ids:
+                st.warning("Please tick at least one staff member.")
             else:
-                conn = get_db()
+                conn = get_conn()
                 c = conn.cursor()
                 c.execute("""
-                    INSERT INTO camps (
-                        cbo_id, cbo_name, camp_type, camp_date, start_time, end_time,
-                        duration_hh, duration_mm, village, gram_panchayat, block, district,
-                        trainer_name, trainer_designation, female_count, male_count,
-                        transgender_count, total_participants, group_type, training_method,
-                        topics, knowledge_level, phase, remarks, created_at
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    INSERT INTO training_entries
+                    (cbo_id, cbo_name, entry_date, training_type, topic, activity_date, phase,
+                     no_physical, no_virtual, staff_ids, staff_names, remarks, created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, (
-                    cbo_id, cbo_name, camp_type, str(camp_date),
-                    str(start_time), str(end_time), str(duration_hh), str(duration_mm),
-                    village, gram_panchayat, block, district,
-                    trainer_name, trainer_desig, female, male, trans, total,
-                    group_type, method, ", ".join(selected_topics), knowledge,
-                    phase, remarks, datetime.now().isoformat()
+                    cbo_id, cbo_name, str(entry_date), training_type, topic, str(activity_date), phase,
+                    no_physical, no_virtual, ",".join(present_ids), ",".join(present_names),
+                    remarks, datetime.now().isoformat()
                 ))
-                camp_id = c.lastrowid
-
-                # Attendance
-                for s in present_staff:
-                    sid = staff_options[s]
-                    srow = team[team['Consultant No'] == sid].iloc[0]
-                    c.execute(
-                        "INSERT INTO camp_attendance (camp_id, staff_id, staff_name, designation, present) VALUES (?,?,?,?,1)",
-                        (camp_id, sid, srow['Consultant'], srow['Designation'])
-                    )
                 conn.commit()
                 conn.close()
-                st.success(f"✅ Camp successfully saved! (ID: {camp_id})")
+                st.success(f"Saved successfully · {len(present_ids)} staff marked present")
                 st.balloons()
 
-# -------------------- REPORTS --------------------
-def reports_page():
-    cbo_id = st.session_state['cbo_id']
-    st.title("📊 Reports & Indicators")
+# -------------------- REPORT --------------------
+def page_report():
+    cbo_id = st.session_state.cbo_id
 
-    conn = get_db()
-    camps = pd.read_sql_query(
-        "SELECT * FROM camps WHERE cbo_id=? ORDER BY camp_date DESC",
-        conn, params=(cbo_id,)
-    )
-    attendance = pd.read_sql_query(
-        """SELECT a.*, c.camp_date, c.village, c.camp_type 
-           FROM camp_attendance a 
-           JOIN camps c ON a.camp_id = c.id 
-           WHERE c.cbo_id=?""",
+    st.markdown(f"""
+    <div class="main-header">
+        <h1>Report</h1>
+        <p>Training Summary · Phase-wise · Topic-wise</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    conn = get_conn()
+    df = pd.read_sql_query(
+        "SELECT * FROM training_entries WHERE cbo_id=? ORDER BY activity_date DESC, id DESC",
         conn, params=(cbo_id,)
     )
     conn.close()
 
-    if camps.empty:
-        st.warning("अभी कोई data नहीं है। पहले Camp entry करें।")
+    if df.empty:
+        st.info("No entries found. Please add data from the Data Entry Form.")
         return
 
-    # Summary KPIs
-    st.subheader("Summary Indicators")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("कुल Camps", len(camps))
-    c2.metric("कुल Participants", int(camps['total_participants'].sum()))
-    c3.metric("Physical / Training", len(camps[camps['camp_type'].str.contains('प्रशिक्षण|Training', na=False)]))
-    c4.metric("Awareness / Linkage", len(camps[~camps['camp_type'].str.contains('प्रशिक्षण|Training', na=False)]))
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Total Entries", len(df))
+    k2.metric("Physical Trainings", int(df["no_physical"].sum()))
+    k3.metric("Virtual Trainings", int(df["no_virtual"].sum()))
+    k4.metric("Unique Topics", df["topic"].nunique())
 
-    # Phase wise
-    st.subheader("Phase-wise Camp Count")
-    phase_counts = camps['phase'].value_counts().reset_index()
-    phase_counts.columns = ['Phase', 'Count']
-    st.dataframe(phase_counts, use_container_width=True, hide_index=True)
+    st.markdown('<div class="section-title">Phase-wise Summary</div>', unsafe_allow_html=True)
+    phase_summary = df.groupby("phase").agg(
+        Entries=("id", "count"),
+        Physical=("no_physical", "sum"),
+        Virtual=("no_virtual", "sum")
+    ).reset_index()
+    st.dataframe(phase_summary, use_container_width=True, hide_index=True)
 
-    # Topic frequency
-    st.subheader("Topics Coverage")
-    all_topics = []
-    for t in camps['topics'].dropna():
-        all_topics.extend([x.strip() for x in str(t).split(',')])
-    if all_topics:
-        topic_df = pd.Series(all_topics).value_counts().reset_index()
-        topic_df.columns = ['Topic', 'Times Covered']
-        st.dataframe(topic_df, use_container_width=True, hide_index=True)
+    st.markdown('<div class="section-title">Topic-wise Coverage</div>', unsafe_allow_html=True)
+    topic_summary = df.groupby("topic").agg(
+        Count=("id", "count"),
+        Physical=("no_physical", "sum"),
+        Virtual=("no_virtual", "sum")
+    ).reset_index().sort_values("Count", ascending=False)
+    st.dataframe(topic_summary, use_container_width=True, hide_index=True)
 
-    # Full camp list
-    st.subheader("सभी Camp Details")
-    show_cols = ['id', 'camp_date', 'camp_type', 'village', 'district', 'total_participants',
-                 'female_count', 'male_count', 'phase', 'topics']
-    st.dataframe(camps[show_cols], use_container_width=True, hide_index=True)
+    st.markdown('<div class="section-title">All Entries</div>', unsafe_allow_html=True)
+    display = df[[
+        "entry_date", "activity_date", "training_type", "topic", "phase",
+        "no_physical", "no_virtual", "staff_names"
+    ]].rename(columns={
+        "entry_date": "Date",
+        "activity_date": "Activity Date",
+        "training_type": "Type",
+        "topic": "Topic",
+        "phase": "Phase",
+        "no_physical": "Physical",
+        "no_virtual": "Virtual",
+        "staff_names": "Staff Present"
+    })
+    st.dataframe(display, use_container_width=True, hide_index=True)
 
     st.download_button(
-        "📥 Full Report CSV",
-        data=camps.to_csv(index=False).encode('utf-8-sig'),
-        file_name=f"camp_report_{cbo_id}_{date.today()}.csv",
-        mime="text/csv"
+        "Download Full Report (CSV)",
+        df.to_csv(index=False).encode("utf-8-sig"),
+        f"training_report_{cbo_id}_{date.today()}.csv",
+        "text/csv"
     )
-
-    if not attendance.empty:
-        st.subheader("Staff Attendance Log")
-        st.dataframe(attendance, use_container_width=True, hide_index=True)
 
 # -------------------- MAIN --------------------
 def main():
     st.set_page_config(
-        page_title="CBO Training Portal | MoneyWise",
+        page_title="MoneyWise CBO Portal",
         page_icon="🏦",
         layout="wide",
         initial_sidebar_state="expanded"
     )
-
     init_db()
+    inject_css()
     staff_df = load_staff()
 
-    # Custom CSS
-    st.markdown("""
-    <style>
-        .stMetric { background: #f0f7ff; padding: 12px; border-radius: 10px; }
-        div[data-testid="stSidebar"] { background: #e8f4f8; }
-    </style>
-    """, unsafe_allow_html=True)
-
-    if 'logged_in' not in st.session_state or not st.session_state['logged_in']:
+    if not st.session_state.get("logged_in"):
         login_page()
         return
 
-    # Sidebar
     with st.sidebar:
-        st.image("https://img.icons8.com/color/96/bank.png", width=60)
-        st.markdown(f"**{st.session_state['cbo_name']}**")
-        st.caption(st.session_state['cbo_id'])
+        st.markdown(f"**{st.session_state.cbo_name}**")
+        st.caption(f"{st.session_state.cbo_id} · {st.session_state.cbo_loc}")
         st.divider()
-
         page = st.radio(
-            "Navigation",
-            ["🏠 Dashboard", "👥 मेरी टीम", "📝 नया Camp / Training", "📊 Reports"],
+            "Menu",
+            ["Dashboard", "My Team", "Data Entry Form", "Report"],
             label_visibility="collapsed"
         )
         st.divider()
@@ -501,14 +469,14 @@ def main():
                 del st.session_state[k]
             st.rerun()
 
-    if page == "🏠 Dashboard":
-        dashboard(staff_df)
-    elif page == "👥 मेरी टीम":
-        staff_list_page(staff_df)
-    elif page == "📝 नया Camp / Training":
-        new_camp_page(staff_df)
-    elif page == "📊 Reports":
-        reports_page()
+    if page == "Dashboard":
+        page_dashboard(staff_df)
+    elif page == "My Team":
+        page_team(staff_df)
+    elif page == "Data Entry Form":
+        page_entry(staff_df)
+    elif page == "Report":
+        page_report()
 
 if __name__ == "__main__":
     main()
