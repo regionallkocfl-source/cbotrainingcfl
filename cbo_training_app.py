@@ -1,6 +1,6 @@
 """
 MoneyWise CBO Training Portal
-Professional Data Entry Form + Report
+Bilingual (Hindi + English) · Mobile Friendly · Professional UI
 """
 
 import streamlit as st
@@ -14,24 +14,168 @@ DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 STAFF_CSV = os.path.join(DATA_DIR, "active_staff.csv")
 DB_PATH = os.path.join("/tmp", "cbo_training.db") if os.path.exists("/tmp") else os.path.join(DATA_DIR, "cbo_training.db")
 
+# PDF Topics: Hindi + English
 TOPICS = [
-    "CRISIL Foundation / SOP of Project",
-    "KYC / Re-KYC",
-    "Digital Banking & Digital Lending",
-    "Social Security Schemes (PMJDY, PMSBY, PMJJBY, APY, NPS)",
-    "Banking Ombudsman / One Nation One Ombudsman",
-    "Mutual Funds / SIP",
-    "Savings, RD, FD, ATM",
-    "MSME / Mudra Loan / CM YUVA",
-    "Insurance & Financial Planning",
-    "Fraud Prevention / Cyber Fraud",
-    "NABARD / RBI / PACS",
-    "Communication Skills for Effective Session",
-    "Input Reporting Form Filling",
-    "Other"
+    {"hi": "आर्थिक नियोजन (आय-व्यय)", "en": "Financial Planning (Income-Expense)"},
+    {"hi": "बचत एवं निवेश", "en": "Savings & Investment"},
+    {"hi": "बैंकिंग एवं वित्तीय उत्पाद", "en": "Banking & Financial Products"},
+    {"hi": "बीमा", "en": "Insurance"},
+    {"hi": "पेंशन (स्वावलंबन)", "en": "Pension (Swaylamban / APY / NPS)"},
+    {"hi": "डिजिटल लेनदेन एवं वित्तीय सेवाएँ", "en": "Digital Transactions & Financial Services"},
+    {"hi": "लोन / ऋण", "en": "Loan / Credit"},
+    {"hi": "व्यवसायिक ऋण", "en": "Business Loan (MSME / Mudra)"},
+    {"hi": "बैंकिंग ग्राहक के अधिकार एवं जिम्मेदारियाँ", "en": "Banking Customer Rights & Responsibilities"},
+    {"hi": "शिकायत निवारण प्रणाली (लोकपाल)", "en": "Grievance Redressal (Ombudsman)"},
+    {"hi": "बुनियादी वित्तीय साक्षरता", "en": "Basic Financial Literacy"},
+    {"hi": "बुनियादी गणितीय कौशल", "en": "Basic Mathematical Skills"},
+    {"hi": "CRISIL Foundation / SOP", "en": "CRISIL Foundation / Project SOP"},
+    {"hi": "KYC / Re-KYC", "en": "KYC / Re-KYC"},
+    {"hi": "सोशल सिक्योरिटी स्कीम (PMJDY, PMSBY, PMJJBY)", "en": "Social Security Schemes (PMJDY, PMSBY, PMJJBY)"},
+    {"hi": "फ्रॉड प्रिवेंशन / साइबर फ्रॉड", "en": "Fraud Prevention / Cyber Fraud"},
+    {"hi": "NABARD / RBI / PACS", "en": "NABARD / RBI / PACS"},
+    {"hi": "अन्य", "en": "Other"},
 ]
 
-PHASES = ["Phase-II", "Phase-III", "Extension Phase - 1"]
+PHASES = [
+    {"hi": "Phase-II", "en": "Phase-II"},
+    {"hi": "Phase-III", "en": "Phase-III"},
+    {"hi": "Extension Phase - 1", "en": "Extension Phase - 1"},
+]
+
+TRAINING_TYPES = [
+    {"hi": "फिजिकल (Physical)", "en": "Physical"},
+    {"hi": "वर्चुअल (Virtual)", "en": "Virtual"},
+]
+
+# -------------------- i18n --------------------
+T = {
+    "en": {
+        "app_title": "MoneyWise",
+        "app_sub": "CBO Training & Capacity Building Portal",
+        "login": "CBO Login",
+        "select_name": "Select your name",
+        "password": "Password",
+        "sign_in": "Sign In",
+        "demo_pwd": "Demo password: cbo123",
+        "wrong_pwd": "Incorrect password",
+        "menu_dashboard": "Dashboard",
+        "menu_team": "My Team",
+        "menu_entry": "Data Entry",
+        "menu_report": "Report",
+        "logout": "Logout",
+        "welcome": "Welcome",
+        "district": "District",
+        "block": "Block",
+        "total_team": "Total Team",
+        "fc": "Field Coordinators",
+        "cm": "Centre Managers",
+        "deo": "Data Entry Operators",
+        "trainings_done": "Trainings Done",
+        "recent": "Recent Entries",
+        "no_entries": "No entries yet. Use Data Entry to add.",
+        "my_team": "My Team",
+        "members_under": "members under",
+        "filter_desig": "Filter Designation",
+        "search": "Search name / ID / mobile",
+        "download": "Download CSV",
+        "data_entry": "Data Entry Form",
+        "data_entry_sub": "Physical / Virtual Training · Staff Attendance",
+        "basic": "Basic Details",
+        "date": "Date",
+        "training_type": "Training Type",
+        "activity_date": "Activity Date",
+        "topic": "Training Topic",
+        "phase": "Phase",
+        "numbers": "Numbers",
+        "no_physical": "No. of Physical",
+        "no_virtual": "No. of Virtual",
+        "staff_list": "Staff List (tick present)",
+        "staff_hint": "Your mapped FC / CM / DEO",
+        "remarks": "Remarks (optional)",
+        "save": "Save Entry",
+        "saved": "Saved successfully",
+        "staff_present": "staff marked present",
+        "report": "Report",
+        "report_sub": "Summary · Phase-wise · Topic-wise",
+        "total_entries": "Total Entries",
+        "physical": "Physical",
+        "virtual": "Virtual",
+        "unique_topics": "Unique Topics",
+        "phase_summary": "Phase-wise Summary",
+        "topic_summary": "Topic-wise Coverage",
+        "all_entries": "All Entries",
+        "download_report": "Download Full Report",
+        "no_data": "No data. Please add from Data Entry.",
+        "lang": "Language",
+    },
+    "hi": {
+        "app_title": "MoneyWise",
+        "app_sub": "सीबीओ प्रशिक्षण एवं क्षमता निर्माण पोर्टल",
+        "login": "सीबीओ लॉगिन",
+        "select_name": "अपना नाम चुनें",
+        "password": "पासवर्ड",
+        "sign_in": "साइन इन",
+        "demo_pwd": "डेमो पासवर्ड: cbo123",
+        "wrong_pwd": "गलत पासवर्ड",
+        "menu_dashboard": "डैशबोर्ड",
+        "menu_team": "मेरी टीम",
+        "menu_entry": "डेटा एंट्री",
+        "menu_report": "रिपोर्ट",
+        "logout": "लॉगआउट",
+        "welcome": "नमस्ते",
+        "district": "जिला",
+        "block": "ब्लॉक",
+        "total_team": "कुल टीम",
+        "fc": "फील्ड कोऑर्डिनेटर",
+        "cm": "सेंटर मैनेजर",
+        "deo": "डेटा एंट्री ऑपरेटर",
+        "trainings_done": "प्रशिक्षण पूर्ण",
+        "recent": "हाल की एंट्री",
+        "no_entries": "अभी कोई एंट्री नहीं। डेटा एंट्री से जोड़ें।",
+        "my_team": "मेरी टीम",
+        "members_under": "सदस्य",
+        "filter_desig": "पद फ़िल्टर",
+        "search": "नाम / ID / मोबाइल खोजें",
+        "download": "CSV डाउनलोड",
+        "data_entry": "डेटा एंट्री फॉर्म",
+        "data_entry_sub": "फिजिकल / वर्चुअल प्रशिक्षण · स्टाफ उपस्थिति",
+        "basic": "मूल जानकारी",
+        "date": "दिनांक",
+        "training_type": "प्रशिक्षण प्रकार",
+        "activity_date": "गतिविधि तिथि",
+        "topic": "प्रशिक्षण विषय",
+        "phase": "चरण",
+        "numbers": "संख्या",
+        "no_physical": "फिजिकल संख्या",
+        "no_virtual": "वर्चुअल संख्या",
+        "staff_list": "स्टाफ सूची (टिक करें)",
+        "staff_hint": "आपके मैप किए गए FC / CM / DEO",
+        "remarks": "टिप्पणी (वैकल्पिक)",
+        "save": "सेव करें",
+        "saved": "सफलतापूर्वक सेव हो गया",
+        "staff_present": "स्टाफ उपस्थित",
+        "report": "रिपोर्ट",
+        "report_sub": "सारांश · चरणवार · विषयवार",
+        "total_entries": "कुल एंट्री",
+        "physical": "फिजिकल",
+        "virtual": "वर्चुअल",
+        "unique_topics": "विषयों की संख्या",
+        "phase_summary": "चरणवार सारांश",
+        "topic_summary": "विषयवार कवरेज",
+        "all_entries": "सभी एंट्री",
+        "download_report": "पूरी रिपोर्ट डाउनलोड",
+        "no_data": "कोई डेटा नहीं। डेटा एंट्री से जोड़ें।",
+        "lang": "भाषा",
+    },
+}
+
+def t(key):
+    lang = st.session_state.get("lang", "en")
+    return T.get(lang, T["en"]).get(key, key)
+
+def topic_label(item):
+    lang = st.session_state.get("lang", "en")
+    return item.get(lang, item["en"])
 
 # -------------------- DB --------------------
 def init_db():
@@ -40,8 +184,10 @@ def init_db():
     c.execute("""
         CREATE TABLE IF NOT EXISTS training_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cbo_id TEXT NOT NULL,
+            cbo_id TEXT,
             cbo_name TEXT,
+            district TEXT,
+            block TEXT,
             entry_date TEXT,
             training_type TEXT,
             topic TEXT,
@@ -80,87 +226,84 @@ def load_leaders():
 def get_team(cbo_id, staff_df):
     return staff_df[staff_df["Primary_ID"] == cbo_id].copy()
 
-# -------------------- STYLES --------------------
+# -------------------- CSS (Professional + Mobile) --------------------
 def inject_css():
     st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-    }
+    html, body, [class*="css"] { font-family: 'Inter', system-ui, sans-serif; }
 
-    .main-header {
-        background: linear-gradient(135deg, #0f4c81 0%, #1a73a8 100%);
-        color: white;
-        padding: 1.2rem 1.5rem;
+    /* Header */
+    .app-header {
+        background: linear-gradient(135deg, #0b3d5c 0%, #1a6b9a 60%, #2a9d8f 100%);
+        color: #fff;
+        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 6px 20px rgba(11,61,92,0.28);
+    }
+    .app-header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; color: #fff !important; }
+    .app-header p { margin: 0.25rem 0 0; font-size: 0.85rem; opacity: 0.92; color: #fff !important; }
+
+    /* Metric cards */
+    .m-card {
+        background: #fff;
+        border: 1px solid #e8ecf0;
         border-radius: 12px;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 4px 12px rgba(15,76,129,0.25);
-    }
-    .main-header h1 {
-        margin: 0;
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: white !important;
-    }
-    .main-header p {
-        margin: 0.3rem 0 0 0;
-        opacity: 0.9;
-        font-size: 0.9rem;
-        color: white !important;
-    }
-
-    .metric-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 1rem 1.2rem;
+        padding: 0.9rem 0.75rem;
         text-align: center;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: transform 0.15s;
     }
-    .metric-card .value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #0f4c81;
-    }
-    .metric-card .label {
-        font-size: 0.8rem;
-        color: #6b7280;
-        margin-top: 0.2rem;
+    .m-card:hover { transform: translateY(-2px); }
+    .m-val { font-size: 1.55rem; font-weight: 700; color: #0b3d5c; line-height: 1.2; }
+    .m-lbl { font-size: 0.72rem; color: #64748b; margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em; }
+
+    .sec {
+        font-size: 1rem; font-weight: 600; color: #0f172a;
+        margin: 1.1rem 0 0.6rem; padding-bottom: 0.35rem;
+        border-bottom: 2.5px solid #1a6b9a;
     }
 
-    .section-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #111827;
-        margin: 1.2rem 0 0.8rem 0;
-        padding-bottom: 0.4rem;
-        border-bottom: 2px solid #0f4c81;
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #f0f7fb 0%, #e8f0f5 100%);
+        border-right: 1px solid #d0e0ea;
+    }
+    section[data-testid="stSidebar"] .stRadio label {
+        font-weight: 500; padding: 0.35rem 0;
     }
 
-    div[data-testid="stSidebar"] {
-        background: #f8fafc;
-    }
-
+    /* Buttons */
     .stButton > button[kind="primary"] {
-        background: #0f4c81;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
+        background: linear-gradient(135deg, #0b3d5c, #1a6b9a);
+        color: white; border: none; border-radius: 10px;
+        font-weight: 600; padding: 0.55rem 1.4rem;
+        box-shadow: 0 3px 10px rgba(11,61,92,0.25);
     }
     .stButton > button[kind="primary"]:hover {
-        background: #0a3a63;
+        background: linear-gradient(135deg, #08304a, #155a82);
     }
 
-    .login-box {
-        max-width: 420px;
-        margin: 3rem auto;
-        padding: 2rem;
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-        border: 1px solid #e5e7eb;
+    /* Login */
+    .login-wrap { max-width: 400px; margin: 2.5rem auto; }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+        .app-header h1 { font-size: 1.15rem; }
+        .m-val { font-size: 1.3rem; }
+        .m-lbl { font-size: 0.65rem; }
+        div[data-testid="stHorizontalBlock"] { flex-wrap: wrap; }
+    }
+
+    /* Form polish */
+    .stTextInput input, .stSelectbox, .stNumberInput input, .stDateInput input {
+        border-radius: 8px !important;
+    }
+    div[data-testid="stForm"] {
+        background: #fafbfc; padding: 1.25rem; border-radius: 14px;
+        border: 1px solid #e8ecf0;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -168,47 +311,55 @@ def inject_css():
 # -------------------- LOGIN --------------------
 def login_page():
     inject_css()
-    st.markdown("""
-    <div style="text-align:center; margin-top:2rem;">
-        <h1 style="color:#0f4c81; font-weight:700;">MoneyWise</h1>
-        <p style="color:#6b7280;">CBO Training & Capacity Building Portal</p>
+    st.markdown(f"""
+    <div style="text-align:center;padding:1.5rem 0 0.5rem;">
+        <h1 style="color:#0b3d5c;font-weight:700;margin:0;">{t("app_title")}</h1>
+        <p style="color:#64748b;margin:0.3rem 0 0;">{t("app_sub")}</p>
     </div>
     """, unsafe_allow_html=True)
 
+    # Language toggle
+    lang_col1, lang_col2, lang_col3 = st.columns([2, 1, 2])
+    with lang_col2:
+        lang = st.radio("", ["English", "हिन्दी"], horizontal=True, label_visibility="collapsed",
+                        index=0 if st.session_state.get("lang", "en") == "en" else 1)
+        st.session_state.lang = "en" if lang == "English" else "hi"
+
     leaders = load_leaders()
     options = {
-        f"{r['Consultant']}  ({r['Consultant No']})  ·  {r['Working Location']}": r["Consultant No"]
+        f"{r['Consultant']} ({r['Consultant No']}) · {r['Working Location']}": r["Consultant No"]
         for _, r in leaders.iterrows()
     }
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("#### CBO Login")
-        selected = st.selectbox("Select your name", list(options.keys()), label_visibility="collapsed")
-        pwd = st.text_input("Password", type="password", value="cbo123", placeholder="Enter password")
-        if st.button("Sign In", type="primary", use_container_width=True):
-            if pwd == "cbo123":
-                cid = options[selected]
-                row = leaders[leaders["Consultant No"] == cid].iloc[0]
-                st.session_state.logged_in = True
-                st.session_state.cbo_id = cid
-                st.session_state.cbo_name = row["Consultant"]
-                st.session_state.cbo_loc = row["Working Location"]
-                st.session_state.cbo_desig = row["Designation"]
-                st.rerun()
-            else:
-                st.error("Incorrect password. Use: cbo123")
-        st.caption("Demo password: **cbo123**")
+    st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
+    st.markdown(f"##### {t('login')}")
+    selected = st.selectbox(t("select_name"), list(options.keys()), label_visibility="collapsed")
+    pwd = st.text_input(t("password"), type="password", value="cbo123")
+    if st.button(t("sign_in"), type="primary", use_container_width=True):
+        if pwd.strip() == "cbo123":
+            cid = options[selected]
+            row = leaders[leaders["Consultant No"] == cid].iloc[0]
+            st.session_state.logged_in = True
+            st.session_state.cbo_id = cid
+            st.session_state.cbo_name = row["Consultant"]
+            st.session_state.cbo_district = row["Working Location"]
+            st.session_state.cbo_desig = row["Designation"]
+            st.rerun()
+        else:
+            st.error(t("wrong_pwd"))
+    st.caption(t("demo_pwd"))
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # -------------------- DASHBOARD --------------------
 def page_dashboard(staff_df):
     cbo_id = st.session_state.cbo_id
     team = get_team(cbo_id, staff_df)
+    district = st.session_state.get("cbo_district", "—")
 
     st.markdown(f"""
-    <div class="main-header">
-        <h1>Welcome, {st.session_state.cbo_name}</h1>
-        <p>{st.session_state.cbo_desig} &nbsp;|&nbsp; {st.session_state.cbo_loc} &nbsp;|&nbsp; ID: {cbo_id}</p>
+    <div class="app-header">
+        <h1>{t("welcome")}, {st.session_state.cbo_name}</h1>
+        <p>{st.session_state.cbo_desig} &nbsp;|&nbsp; {t("district")}: {district} &nbsp;|&nbsp; ID: {cbo_id}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -218,8 +369,7 @@ def page_dashboard(staff_df):
 
     conn = get_conn()
     stats = pd.read_sql_query(
-        "SELECT COUNT(*) as total, COALESCE(SUM(no_physical),0) as phys, COALESCE(SUM(no_virtual),0) as virt FROM training_entries WHERE cbo_id=?",
-        conn, params=(cbo_id,)
+        "SELECT COUNT(*) as total FROM training_entries WHERE cbo_id=?", conn, params=(cbo_id,)
     )
     recent = pd.read_sql_query(
         "SELECT entry_date, training_type, topic, activity_date, phase, no_physical, no_virtual FROM training_entries WHERE cbo_id=? ORDER BY id DESC LIMIT 8",
@@ -227,44 +377,45 @@ def page_dashboard(staff_df):
     )
     conn.close()
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    with c1:
-        st.markdown(f'<div class="metric-card"><div class="value">{len(team)}</div><div class="label">Total Team</div></div>', unsafe_allow_html=True)
-    with c2:
-        st.markdown(f'<div class="metric-card"><div class="value">{fc}</div><div class="label">Field Coordinators</div></div>', unsafe_allow_html=True)
-    with c3:
-        st.markdown(f'<div class="metric-card"><div class="value">{cm}</div><div class="label">Centre Managers</div></div>', unsafe_allow_html=True)
-    with c4:
-        st.markdown(f'<div class="metric-card"><div class="value">{deo}</div><div class="label">Data Entry Operators</div></div>', unsafe_allow_html=True)
-    with c5:
-        total_entries = int(stats["total"].iloc[0] or 0)
-        st.markdown(f'<div class="metric-card"><div class="value">{total_entries}</div><div class="label">Trainings Done</div></div>', unsafe_allow_html=True)
+    cols = st.columns(5)
+    metrics = [
+        (len(team), t("total_team")),
+        (fc, t("fc")),
+        (cm, t("cm")),
+        (deo, t("deo")),
+        (int(stats["total"].iloc[0] or 0), t("trainings_done")),
+    ]
+    for col, (val, lbl) in zip(cols, metrics):
+        with col:
+            st.markdown(f'<div class="m-card"><div class="m-val">{val}</div><div class="m-lbl">{lbl}</div></div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="section-title">Recent Training Entries</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="sec">{t("recent")}</div>', unsafe_allow_html=True)
     if recent.empty:
-        st.info("No training entries yet. Go to **Data Entry Form** to add one.")
+        st.info(t("no_entries"))
     else:
         st.dataframe(recent, use_container_width=True, hide_index=True)
 
-# -------------------- TEAM LIST --------------------
+# -------------------- TEAM --------------------
 def page_team(staff_df):
     cbo_id = st.session_state.cbo_id
     team = get_team(cbo_id, staff_df)
+    district = st.session_state.get("cbo_district", "—")
 
     st.markdown(f"""
-    <div class="main-header">
-        <h1>My Team</h1>
-        <p>{len(team)} members under {st.session_state.cbo_name}</p>
+    <div class="app-header">
+        <h1>{t("my_team")}</h1>
+        <p>{len(team)} {t("members_under")} {st.session_state.cbo_name} · {t("district")}: {district}</p>
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns([2, 2])
-    with col1:
-        desigs = st.multiselect("Filter Designation", sorted(team["Designation"].unique()), default=list(team["Designation"].unique()))
-    with col2:
-        search = st.text_input("Search name / ID / mobile")
+    c1, c2 = st.columns(2)
+    with c1:
+        desigs = st.multiselect(t("filter_desig"), sorted(team["Designation"].unique()),
+                                default=list(team["Designation"].unique()))
+    with c2:
+        search = st.text_input(t("search"), placeholder="...")
 
-    filtered = team[team["Designation"].isin(desigs)]
+    filtered = team[team["Designation"].isin(desigs)] if desigs else team
     if search:
         m = (
             filtered["Consultant"].str.contains(search, case=False, na=False) |
@@ -273,68 +424,71 @@ def page_team(staff_df):
         )
         filtered = filtered[m]
 
-    show = filtered[["Consultant No", "Consultant", "Designation", "Working Location", "Mobile No", "Gender", "Aging", "BCC Code"]].copy()
+    show = filtered[["Consultant No", "Consultant", "Designation", "Working Location", "Mobile No", "Gender", "Aging"]].copy()
     show["Designation"] = show["Designation"].str.replace("Consultant (", "").str.replace(")", "")
-    st.dataframe(show, use_container_width=True, hide_index=True, height=420)
+    st.dataframe(show, use_container_width=True, hide_index=True, height=400)
+    st.download_button(t("download"), show.to_csv(index=False).encode("utf-8-sig"),
+                       f"team_{cbo_id}.csv", "text/csv")
 
-    st.download_button("Download CSV", show.to_csv(index=False).encode("utf-8-sig"),
-                       f"team_{cbo_id}_{date.today()}.csv", "text/csv")
-
-# -------------------- DATA ENTRY FORM --------------------
+# -------------------- DATA ENTRY (no validation) --------------------
 def page_entry(staff_df):
     cbo_id = st.session_state.cbo_id
     cbo_name = st.session_state.cbo_name
+    district = st.session_state.get("cbo_district", "")
     team = get_team(cbo_id, staff_df)
 
     st.markdown(f"""
-    <div class="main-header">
-        <h1>Data Entry Form</h1>
-        <p>Record Physical / Virtual Training · CBO-wise Staff Attendance</p>
+    <div class="app-header">
+        <h1>{t("data_entry")}</h1>
+        <p>{t("data_entry_sub")} · {t("district")}: {district}</p>
     </div>
     """, unsafe_allow_html=True)
 
     with st.form("entry_form", clear_on_submit=True):
-        st.markdown("**Basic Details**")
-        r1c1, r1c2, r1c3 = st.columns(3)
-        with r1c1:
-            entry_date = st.date_input("Date", value=date.today())
-        with r1c2:
-            training_type = st.selectbox("Training Type", ["Physical", "Virtual"])
-        with r1c3:
-            activity_date = st.date_input("Activity Date", value=date.today())
+        st.markdown(f"**{t('basic')}**")
+        r1 = st.columns(3)
+        with r1[0]:
+            entry_date = st.date_input(t("date"), value=date.today())
+        with r1[1]:
+            type_opts = [topic_label(x) for x in TRAINING_TYPES]
+            training_type = st.selectbox(t("training_type"), type_opts)
+        with r1[2]:
+            activity_date = st.date_input(t("activity_date"), value=date.today())
 
-        r2c1, r2c2 = st.columns(2)
-        with r2c1:
-            topic = st.selectbox("Training Topic", TOPICS)
-        with r2c2:
-            phase = st.selectbox("Phase", PHASES)
+        r2 = st.columns(2)
+        with r2[0]:
+            topic_opts = [topic_label(x) for x in TOPICS]
+            topic = st.selectbox(t("topic"), topic_opts)
+        with r2[1]:
+            phase_opts = [topic_label(x) for x in PHASES]
+            phase = st.selectbox(t("phase"), phase_opts)
 
-        st.markdown("**Numbers**")
+        r3 = st.columns(2)
+        with r3[0]:
+            block = st.text_input(t("block"), placeholder="Block name (optional)")
+        with r3[1]:
+            st.text_input(t("district"), value=district, disabled=True)
+
+        st.markdown(f"**{t('numbers')}**")
         n1, n2 = st.columns(2)
         with n1:
-            no_physical = st.number_input("No. of Physical Training", min_value=0, value=1 if training_type == "Physical" else 0)
+            no_physical = st.number_input(t("no_physical"), min_value=0, value=0)
         with n2:
-            no_virtual = st.number_input("No. of Virtual Training", min_value=0, value=1 if training_type == "Virtual" else 0)
+            no_virtual = st.number_input(t("no_virtual"), min_value=0, value=0)
 
-        st.markdown("**Staff List (Tick present staff)**")
-        st.caption("Only your mapped FC / CM / DEO are shown")
+        st.markdown(f"**{t('staff_list')}**")
+        st.caption(t("staff_hint"))
 
-        present_ids = []
-        present_names = []
-
-        for desig_label, keyword in [
-            ("Field Coordinators", "Field Coordinator"),
-            ("Centre Managers", "Centre Manager"),
-            ("Data Entry Operators", "Data Entry Operator"),
-        ]:
-            subset = team[team["Designation"].str.contains(keyword, na=False)]
-            if not subset.empty:
-                st.markdown(f"**{desig_label}** ({len(subset)})")
-                cols = st.columns(3)
-                for idx, (_, row) in enumerate(subset.iterrows()):
-                    with cols[idx % 3]:
-                        label = f"{row['Consultant']} ({row['Consultant No'][-5:]})"
-                        if st.checkbox(label, key=f"staff_{row['Consultant No']}"):
+        present_ids, present_names = [], []
+        for label, kw in [("FC", "Field Coordinator"), ("CM", "Centre Manager"), ("DEO", "Data Entry Operator")]:
+            sub = team[team["Designation"].str.contains(kw, na=False)]
+            if not sub.empty:
+                st.markdown(f"**{label}** ({len(sub)})")
+                cols = st.columns(2 if st.session_state.get("lang") == "hi" else 3)
+                for i, (_, row) in enumerate(sub.iterrows()):
+                    with cols[i % len(cols)]:
+                        short = f"{row['Consultant']} ({str(row['Consultant No'])[-5:]})"
+                        if st.checkbox(short, key=f"s_{row['Consultant No']}"):
                             present_ids.append(row["Consultant No"])
                             present_names.append(row["Consultant"])
 
@@ -342,43 +496,41 @@ def page_entry(staff_df):
         if not other.empty:
             st.markdown("**Other**")
             for _, row in other.iterrows():
-                if st.checkbox(f"{row['Consultant']} ({row['Designation']})", key=f"staff_{row['Consultant No']}"):
+                if st.checkbox(f"{row['Consultant']}", key=f"s_{row['Consultant No']}"):
                     present_ids.append(row["Consultant No"])
                     present_names.append(row["Consultant"])
 
-        remarks = st.text_area("Remarks (optional)", height=80)
+        remarks = st.text_area(t("remarks"), height=70)
 
-        submitted = st.form_submit_button("Save Entry", type="primary", use_container_width=True)
-
-        if submitted:
-            if not present_ids:
-                st.warning("Please tick at least one staff member.")
-            else:
-                conn = get_conn()
-                c = conn.cursor()
-                c.execute("""
-                    INSERT INTO training_entries
-                    (cbo_id, cbo_name, entry_date, training_type, topic, activity_date, phase,
-                     no_physical, no_virtual, staff_ids, staff_names, remarks, created_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """, (
-                    cbo_id, cbo_name, str(entry_date), training_type, topic, str(activity_date), phase,
-                    no_physical, no_virtual, ",".join(present_ids), ",".join(present_names),
-                    remarks, datetime.now().isoformat()
-                ))
-                conn.commit()
-                conn.close()
-                st.success(f"Saved successfully · {len(present_ids)} staff marked present")
-                st.balloons()
+        # NO VALIDATION — always allow save
+        if st.form_submit_button(t("save"), type="primary", use_container_width=True):
+            conn = get_conn()
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO training_entries
+                (cbo_id, cbo_name, district, block, entry_date, training_type, topic, activity_date, phase,
+                 no_physical, no_virtual, staff_ids, staff_names, remarks, created_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                cbo_id, cbo_name, district, block or "", str(entry_date), training_type, topic,
+                str(activity_date), phase, no_physical, no_virtual,
+                ",".join(present_ids), ",".join(present_names), remarks or "",
+                datetime.now().isoformat()
+            ))
+            conn.commit()
+            conn.close()
+            st.success(f"{t('saved')} · {len(present_ids)} {t('staff_present')}")
+            st.balloons()
 
 # -------------------- REPORT --------------------
 def page_report():
     cbo_id = st.session_state.cbo_id
+    district = st.session_state.get("cbo_district", "—")
 
     st.markdown(f"""
-    <div class="main-header">
-        <h1>Report</h1>
-        <p>Training Summary · Phase-wise · Topic-wise</p>
+    <div class="app-header">
+        <h1>{t("report")}</h1>
+        <p>{t("report_sub")} · {t("district")}: {district}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -390,53 +542,30 @@ def page_report():
     conn.close()
 
     if df.empty:
-        st.info("No entries found. Please add data from the Data Entry Form.")
+        st.info(t("no_data"))
         return
 
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Total Entries", len(df))
-    k2.metric("Physical Trainings", int(df["no_physical"].sum()))
-    k3.metric("Virtual Trainings", int(df["no_virtual"].sum()))
-    k4.metric("Unique Topics", df["topic"].nunique())
+    k1.metric(t("total_entries"), len(df))
+    k2.metric(t("physical"), int(df["no_physical"].sum()))
+    k3.metric(t("virtual"), int(df["no_virtual"].sum()))
+    k4.metric(t("unique_topics"), df["topic"].nunique())
 
-    st.markdown('<div class="section-title">Phase-wise Summary</div>', unsafe_allow_html=True)
-    phase_summary = df.groupby("phase").agg(
-        Entries=("id", "count"),
-        Physical=("no_physical", "sum"),
-        Virtual=("no_virtual", "sum")
-    ).reset_index()
-    st.dataframe(phase_summary, use_container_width=True, hide_index=True)
+    st.markdown(f'<div class="sec">{t("phase_summary")}</div>', unsafe_allow_html=True)
+    ph = df.groupby("phase").agg(Entries=("id", "count"), Physical=("no_physical", "sum"), Virtual=("no_virtual", "sum")).reset_index()
+    st.dataframe(ph, use_container_width=True, hide_index=True)
 
-    st.markdown('<div class="section-title">Topic-wise Coverage</div>', unsafe_allow_html=True)
-    topic_summary = df.groupby("topic").agg(
-        Count=("id", "count"),
-        Physical=("no_physical", "sum"),
-        Virtual=("no_virtual", "sum")
-    ).reset_index().sort_values("Count", ascending=False)
-    st.dataframe(topic_summary, use_container_width=True, hide_index=True)
+    st.markdown(f'<div class="sec">{t("topic_summary")}</div>', unsafe_allow_html=True)
+    tp = df.groupby("topic").agg(Count=("id", "count"), Physical=("no_physical", "sum"), Virtual=("no_virtual", "sum")).reset_index().sort_values("Count", ascending=False)
+    st.dataframe(tp, use_container_width=True, hide_index=True)
 
-    st.markdown('<div class="section-title">All Entries</div>', unsafe_allow_html=True)
-    display = df[[
-        "entry_date", "activity_date", "training_type", "topic", "phase",
-        "no_physical", "no_virtual", "staff_names"
-    ]].rename(columns={
-        "entry_date": "Date",
-        "activity_date": "Activity Date",
-        "training_type": "Type",
-        "topic": "Topic",
-        "phase": "Phase",
-        "no_physical": "Physical",
-        "no_virtual": "Virtual",
-        "staff_names": "Staff Present"
-    })
-    st.dataframe(display, use_container_width=True, hide_index=True)
+    st.markdown(f'<div class="sec">{t("all_entries")}</div>', unsafe_allow_html=True)
+    show = df[["entry_date", "activity_date", "training_type", "topic", "phase", "district", "block",
+               "no_physical", "no_virtual", "staff_names"]].copy()
+    st.dataframe(show, use_container_width=True, hide_index=True)
 
-    st.download_button(
-        "Download Full Report (CSV)",
-        df.to_csv(index=False).encode("utf-8-sig"),
-        f"training_report_{cbo_id}_{date.today()}.csv",
-        "text/csv"
-    )
+    st.download_button(t("download_report"), df.to_csv(index=False).encode("utf-8-sig"),
+                       f"report_{cbo_id}_{date.today()}.csv", "text/csv")
 
 # -------------------- MAIN --------------------
 def main():
@@ -444,9 +573,12 @@ def main():
         page_title="MoneyWise CBO Portal",
         page_icon="🏦",
         layout="wide",
-        initial_sidebar_state="expanded"
+        initial_sidebar_state="auto",
     )
     init_db()
+    if "lang" not in st.session_state:
+        st.session_state.lang = "en"
+
     inject_css()
     staff_df = load_staff()
 
@@ -456,26 +588,35 @@ def main():
 
     with st.sidebar:
         st.markdown(f"**{st.session_state.cbo_name}**")
-        st.caption(f"{st.session_state.cbo_id} · {st.session_state.cbo_loc}")
+        st.caption(f"{st.session_state.cbo_id}")
+        st.caption(f"{t('district')}: {st.session_state.get('cbo_district', '—')}")
+        st.divider()
+
+        # Language in sidebar
+        lang_sel = st.radio(t("lang"), ["English", "हिन्दी"],
+                            index=0 if st.session_state.lang == "en" else 1, horizontal=True)
+        st.session_state.lang = "en" if lang_sel == "English" else "hi"
+
         st.divider()
         page = st.radio(
             "Menu",
-            ["Dashboard", "My Team", "Data Entry Form", "Report"],
-            label_visibility="collapsed"
+            [t("menu_dashboard"), t("menu_team"), t("menu_entry"), t("menu_report")],
+            label_visibility="collapsed",
         )
         st.divider()
-        if st.button("Logout", use_container_width=True):
+        if st.button(t("logout"), use_container_width=True):
             for k in list(st.session_state.keys()):
                 del st.session_state[k]
             st.rerun()
 
-    if page == "Dashboard":
+    # Map page by current language labels
+    if page in (T["en"]["menu_dashboard"], T["hi"]["menu_dashboard"]):
         page_dashboard(staff_df)
-    elif page == "My Team":
+    elif page in (T["en"]["menu_team"], T["hi"]["menu_team"]):
         page_team(staff_df)
-    elif page == "Data Entry Form":
+    elif page in (T["en"]["menu_entry"], T["hi"]["menu_entry"]):
         page_entry(staff_df)
-    elif page == "Report":
+    else:
         page_report()
 
 if __name__ == "__main__":
